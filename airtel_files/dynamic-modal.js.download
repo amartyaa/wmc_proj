@@ -1,0 +1,142 @@
+$(document).on('hidden', '.modal', function () {
+    $(this).remove();
+});
+
+function loadAjaxModal(uri, postData, fade, width, height, postJson, origin, hideOnClickOutside= true) {
+    var div = '<div class="modal';
+    if (fade !== false) div += ' fade';
+    div += '" ';
+    if (width > 0) div += ' data-width="' + width + 'px"';
+    if (height > 0) div += 'data-height="' + height + 'px"';
+    if (!hideOnClickOutside) div += 'data-backdrop="static"';
+    div += '></div>';
+
+    // Hide flash div
+    try {
+        $('#flashdiv').css('width', '0px');
+        $('#flashdiv').css('height', '0px');
+        $('#flashdiv').css('overflow', 'hidden');
+    } catch (e) {
+    }
+
+    // Only vor bootstrap v2
+    try {
+        $('body').modalmanager('loading');
+    } catch (e) {
+    }
+
+    if (postJson) postData = JSON.stringify(postData);
+
+    var ajaxParams = {
+        url: uri,
+        type: "POST",
+        data: postData,
+        success: function (response) {
+
+            div = $(div).html(response)[0];
+            $(div).data('origin', origin);
+            $(div).modal();
+
+            // Execute ajax inner JS
+            $(div).find('script').each(function () {
+                $.globalEval($(this).text());
+            });
+
+            // Add Show flash div event handler
+            $(div).on('hidden', function () {
+                try {
+                    $('#flashdiv').css('width', $('#swfContainer').css('width'));
+                    $('#flashdiv').css('height', $('#swfContainer').css('height'));
+                } catch (e) {
+                }
+
+            });
+            $(div).on('hidden.bs.modal', function () {
+                try {
+                    $('#flashdiv').css('width', $('#swfContainer').css('width'));
+                    $('#flashdiv').css('height', $('#swfContainer').css('height'));
+                } catch (e) {
+                }
+            })
+
+            // Update form elements with uniform (try/catch because uniform is not always loaded)
+            try {
+                $(div).find('select:not(.selectpicker, .form-control)').uniform();
+                $(div).find('select.selectpicker').selectpicker();
+                $(div).find('input:checkbox').uniform();
+            } catch (e) {
+            }
+
+
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            notyfy({
+                layout: 'center',
+                type: 'error',
+                text: '<strong>Server error (' + xhr.status + ') :</strong> ' + xhr.responseText
+            });
+        }
+    };
+
+    if (postJson) ajaxParams.contentType = "application/json; charset=utf-8";
+    $.ajax(ajaxParams);
+}
+
+function loadGoogleMapsModal(lat, lng, width, height) {
+    var div = '<div class="modal';
+    div += ' fade';
+    div += '"';
+    if (width > 0) div += ' data-width="' + (width + 5) + 'px"';
+    if (height > 0) div += 'data-height="' + (height + 5) + 'px"';
+    div += '><iframe src="https://maps.google.com/maps?q='+lat+','+lng+'&ll='+lat+','+lng+'&z=5&ie=UTF8&output=embed" width="'+width+'" height="'+height+'" seamless="" style="position: absolute; top: 50%; left: 50%; margin-left: -240px; margin-top: -175px;"></iframe></div>';
+    // div += '><div id="map-canvas" style="width:' + width + ';height:' + height + ';"></div></div>';
+    $(div).modal();
+
+/*
+    setTimeout(function(){
+        var nominatim_map_init = {
+            minZoom: 2,
+            maxZoom: 16,
+            zoom: 4,
+            lat: 45.5,
+            lon: 5.5,
+            tile_url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            tile_attribution: '<span class="copyright">&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors</span>'
+        };
+
+        map = new L.map('map-canvas', {
+            attributionControl: (nominatim_map_init.tile_attribution && nominatim_map_init.tile_attribution.length),
+            scrollWheelZoom: true, // !L.Browser.touch,
+            touchZoom: false,
+            minZoom: nominatim_map_init.minZoom,
+            maxZoom: nominatim_map_init.maxZoom
+        });
+
+        //OSM Tiles
+        L.tileLayer(nominatim_map_init.tile_url, {
+            noWrap: true, // otherwise we end up with click coordinates like latitude -728
+            attribution: (nominatim_map_init.tile_attribution || null)
+        }).addTo(map);
+    }, 1000);
+*/
+
+}
+
+function catchEnterKey(callback) {
+    if (window.event && window.event.keyCode == 13) {
+        if (callback) {
+            window[callback]();
+        }
+        return false;
+    }
+}
+
+function makeid() {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    for (var i = 0; i < 10; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return text;
+}
